@@ -15,4 +15,4 @@ set -x
 
 black "${files[@]}"
 ruff --fix "${files[@]}"
-mypy synapse-sso-connect
+mypy synapse-sso-proconnect

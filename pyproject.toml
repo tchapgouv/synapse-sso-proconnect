@@ -19,6 +19,7 @@ dev = [
   # for tests
   "pydantic >= 1.7.4, < 2.0",
   "matrix-synapse == 1.103.0",
+  "authlib >=0.15.1",
   "tox",
   "twisted",
   "aiounittest",

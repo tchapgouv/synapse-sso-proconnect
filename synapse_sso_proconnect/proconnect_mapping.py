@@ -78,7 +78,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         )
     
     # Return a dict with specific email replacements mappings.
-    async def getReplaceMapping():
+    async def getReplaceMapping(self):
         return {
             # Specific email replacement
             "aaa.externe@numerique.gouv.fr" : "aaa@beta.gouv.fr",
