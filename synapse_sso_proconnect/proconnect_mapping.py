@@ -2,6 +2,7 @@ import string
 
 import attr
 from authlib.oidc.core import UserInfo
+from typing import Any, Dict, List, Optional, Tuple
 
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
 from synapse.handlers.sso import MappingException
@@ -14,16 +15,16 @@ mxid_localpart_allowed_characters = frozenset(
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)
 class ProConnectMappingConfig:
-    pass
-
+    mapper_new_old_domain:Dict[str, str]= {}
 
 class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
-    def __init__(self, config: ProConnectMappingConfig, module_api: ModuleApi):
+    def __init__(self, config: Dict[str, str], module_api: ModuleApi):
         self.module_api = module_api
+        self.config_mapper = self.parse_config(config)
 
     @staticmethod
-    def parse_config(config: dict) -> ProConnectMappingConfig:
-        return ProConnectMappingConfig()
+    def parse_config(config_dict: Dict[str, str]) -> ProConnectMappingConfig:
+        return ProConnectMappingConfig(**config_dict)
 
     def get_remote_user_id(self, userinfo: UserInfo) -> str:
         return userinfo.sub
@@ -77,15 +78,6 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             display_name=display_name,
         )
     
-    # Return a dict with specific email replacements mappings.
-    async def getReplaceMapping(self):
-        return {
-            # Specific email replacement
-            "aaa.externe@numerique.gouv.fr" : "aaa@beta.gouv.fr",
-            # General domain replacement
-            "numerique.gouv.fr": "beta.gouv.fr"
-        }
-
     # Search user ID by its email, retrying with replacements if necessary.
     async def search_user_id_by_threepid(self, email: str):
         # Try to find the user ID using the provided email
@@ -93,10 +85,9 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
         # If userId is not found, attempt replacements
         if not userId:
-            replace_mapping = await self.getReplaceMapping()  # Get the mapping of replacements
-
+           
             # Iterate through all mappings
-            for old_value, new_value in replace_mapping.items():
+            for old_value, new_value in  self.config_mapper.mapper_new_old_domain.items():
                 # Check if the key (old_value) exists within the email
                 if old_value in email:
                     # Replace the old value with the new value
