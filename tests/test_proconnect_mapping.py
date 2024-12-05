@@ -23,7 +23,7 @@ class ProConnectMappingTest(aiounittest.AsyncTestCase):
     #def setUp(self) -> None:
     
     async def test_with_map_should_replace(self):
-        self.module = create_module({"user_id_lookup_fallback_rules":{"new.fr": "beta.fr"}}) 
+        self.module = create_module({"user_id_lookup_fallback_rules":{"very-new.fr": "beta.fr", "new.fr": "beta.fr"}}) 
         # Call the tested function with an email that requires replacement
         user_id = await self.module.search_user_id_by_threepid("test@new.fr")   
         # Assertions
