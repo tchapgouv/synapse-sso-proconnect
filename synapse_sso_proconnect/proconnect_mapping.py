@@ -15,16 +15,16 @@ mxid_localpart_allowed_characters = frozenset(
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)
 class ProConnectMappingConfig:
-    mapper_new_old_domain:Dict[str, str]= {}
+    user_id_lookup_fallback_rules:Dict[str, str]= {}
 
 class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
-    def __init__(self, config: Dict[str, str], module_api: ModuleApi):
+    def __init__(self, config: ProConnectMappingConfig, module_api: ModuleApi):
         self.module_api = module_api
-        self.config_mapper = self.parse_config(config)
+        self._config=config
 
     @staticmethod
-    def parse_config(config_dict: Dict[str, str]) -> ProConnectMappingConfig:
-        return ProConnectMappingConfig(**config_dict)
+    def parse_config(config: Dict[str, Any]) -> ProConnectMappingConfig:
+        return ProConnectMappingConfig(**config)
 
     def get_remote_user_id(self, userinfo: UserInfo) -> str:
         return userinfo.sub
@@ -85,9 +85,8 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
         # If userId is not found, attempt replacements
         if not userId:
-           
             # Iterate through all mappings
-            for old_value, new_value in  self.config_mapper.mapper_new_old_domain.items():
+            for old_value, new_value in  self._config.user_id_lookup_fallback_rules.items():
                 # Check if the key (old_value) exists within the email
                 if old_value in email:
                     # Replace the old value with the new value
