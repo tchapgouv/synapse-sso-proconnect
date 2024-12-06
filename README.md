@@ -8,12 +8,23 @@ pip install synapse-sso-proconnect
 
 ## Config
 
-Add the following to your Synapse config:
+Add the following to your oidc config:
 
 ```yaml
-modules:
-  - module: 
-    config:
+oidc_providers:
+  - idp_id
+    ...
+    user_mapping_provider:
+      module: synapse_sso_proconnect.proconnect_mapping.ProConnectMappingProvider
+      config:
+        user_id_lookup_fallback_rules: 
+          - match : user@new_domain.fr
+            search : user@old_domain.fr
+          - match : user@another_domain.fr
+            search : user@an_old_domain.fr
+
+
+
 ```
 
 ## Development and Testing

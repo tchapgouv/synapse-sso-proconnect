@@ -15,7 +15,7 @@ mxid_localpart_allowed_characters = frozenset(
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)
 class ProConnectMappingConfig:
-    user_id_lookup_fallback_rules:Dict[str, str]= {}
+    user_id_lookup_fallback_rules:List[Dict[str, str]]= []
 
 class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
     def __init__(self, config: ProConnectMappingConfig, module_api: ModuleApi):
@@ -86,16 +86,18 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         # If userId is not found, attempt replacements
         if not userId:
             # Iterate through all mappings
-            for old_value, new_value in  self._config.user_id_lookup_fallback_rules.items():
-                # Check if the key (old_value) exists within the email
-                if old_value in email:
-                    # Replace the old value with the new value
-                    replaced_email = email.replace(old_value, new_value)
+            for rule in self._config.user_id_lookup_fallback_rules:
+                replaced_email = email
 
-                    # Retry finding the userId with the replaced email
+                # Rule: Match by specific email
+                if "match" in rule and rule["match"] in email:
+                    replaced_email = email.replace(rule["match"], rule["search"])
+
+                # Retry lookup if the email was modified
+                if replaced_email != email:
                     userId = await self.module_api._store.get_user_id_by_threepid("email", replaced_email)
 
-                    # If userId is found, break the loop early
+                    # Stop if a userId is found
                     if userId:
                         break
 
