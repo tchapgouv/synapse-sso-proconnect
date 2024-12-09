@@ -18,8 +18,8 @@ oidc_providers:
       module: synapse_sso_proconnect.proconnect_mapping.ProConnectMappingProvider
       config:
         user_id_lookup_fallback_rules: 
-          - match : user@new_domain.fr
-            search : user@old_domain.fr
+          - match : new_domain.fr
+            search : old_domain.fr
           - match : user@another_domain.fr
             search : user@an_old_domain.fr
 
