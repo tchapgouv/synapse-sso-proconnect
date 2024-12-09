@@ -38,12 +38,16 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             raise MappingException("No email provided by Pro Connect")
 
         localpart = None
+        # first, check if user exists in the homeserver, search by its email
         mapped_user_id = await self.search_user_id_by_threepid(userinfo.email)
+
+        # If user has been found, try to map it to the proconnect identity
         if mapped_user_id:
             user_info = await self.module_api.get_userinfo_by_id(mapped_user_id)
             if user_info and not user_info.is_deactivated:
                 localpart = user_info.user_id.localpart
 
+        # If user has not been mapped, create a new localpart
         if not localpart:
             if not await self.module_api._password_auth_provider.is_3pid_allowed(
                 "email", userinfo.email, True
@@ -59,8 +63,11 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             )
             desired_localpart = "".join(filtered)
 
-            deactivated = True
-            while deactivated:
+            # Loop until we find a available localpart. 
+            # It means a localpart that don't exist or that is not taken by a deactivated account
+            available_localpart_found = False
+            while not available_localpart_found:
+                # localpart intents are built on the model : localpart1, localpart2..
                 localpart = desired_localpart + (str(failures) if failures else "")
                 user_info = await self.module_api.get_userinfo_by_id(
                     f"@{localpart}:{self.module_api.server_name}"
@@ -68,8 +75,9 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
                 if user_info and user_info.is_deactivated:
                     failures += 1
                 else:
-                    deactivated = False
+                    available_localpart_found = True
 
+        # create display name
         display_name = await self.module_api._password_auth_provider.get_displayname_for_registration(
             {"m.login.email.identity": {"address": userinfo.email}},
             {},
@@ -88,17 +96,14 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
 
         # If userId is not found, attempt replacements
+        # Iterate through all fallback rules 
         if not userId:
-            # Iterate through all mappings
             for rule in self._config.user_id_lookup_fallback_rules:
                 replaced_email = email
 
-                # Rule: Match by specific email
+                # If rule matches, retry the lookup with a modified_email 
                 if "match" in rule and rule["match"] in email:
                     replaced_email = email.replace(rule["match"], rule["search"])
-
-                # Retry lookup if the email was modified
-                if replaced_email != email:
                     userId = await self.module_api._store.get_user_id_by_threepid(
                         "email", replaced_email
                     )
