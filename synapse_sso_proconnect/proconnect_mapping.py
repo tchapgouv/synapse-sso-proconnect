@@ -1,7 +1,7 @@
 import string
 
 import attr
-from authlib.oidc.core import UserInfo # type: ignore
+from authlib.oidc.core import UserInfo  # type: ignore
 from typing import Any, Dict, List
 
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
@@ -15,12 +15,12 @@ mxid_localpart_allowed_characters = frozenset(
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)
 class ProConnectMappingConfig:
-    user_id_lookup_fallback_rules:List[Dict[str, str]]= []
+    user_id_lookup_fallback_rules: List[Dict[str, str]]= []
 
 class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
     def __init__(self, config: ProConnectMappingConfig, module_api: ModuleApi):
         self.module_api = module_api
-        self._config=config
+        self._config = config
 
     @staticmethod
     def parse_config(config: Dict[str, Any]) -> ProConnectMappingConfig:
@@ -48,7 +48,9 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             if not await self.module_api._password_auth_provider.is_3pid_allowed(
                 "email", userinfo.email, True
             ):
-                raise MappingException("Votre administration n'est pas encore présente sur Tchap, inscrivez-la sur https://tchap.beta.gouv.fr/")
+                raise MappingException(
+                    "Votre administration n'est pas encore présente sur Tchap, inscrivez-la sur https://tchap.beta.gouv.fr/"
+                )
 
             # filter out invalid characters
             filtered = filter(
@@ -81,8 +83,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         )
     
     # Search user ID by its email, retrying with replacements if necessary.
-    async def search_user_id_by_threepid(self, email: str
-    )-> str | None:
+    async def search_user_id_by_threepid(self, email: str)-> str | None:
         # Try to find the user ID using the provided email
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
 
@@ -98,7 +99,9 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
                 # Retry lookup if the email was modified
                 if replaced_email != email:
-                    userId = await self.module_api._store.get_user_id_by_threepid("email", replaced_email)
+                    userId = await self.module_api._store.get_user_id_by_threepid(
+                        "email", replaced_email
+                    )
 
                     # Stop if a userId is found
                     if userId:
