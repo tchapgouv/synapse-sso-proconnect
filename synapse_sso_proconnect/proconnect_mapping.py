@@ -1,8 +1,8 @@
 import string
 
 import attr
-from authlib.oidc.core import UserInfo
-from typing import Any, Dict, List, Optional, Tuple
+from authlib.oidc.core import UserInfo # type: ignore
+from typing import Any, Dict, List
 
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
 from synapse.handlers.sso import MappingException
@@ -27,7 +27,9 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         return ProConnectMappingConfig(**config)
 
     def get_remote_user_id(self, userinfo: UserInfo) -> str:
-        return userinfo.sub
+        if not hasattr(userinfo, 'sub') or not userinfo.sub:
+            raise MappingException("The 'sub' attribute is missing or empty in the provided UserInfo object.")
+        return str(userinfo.sub)
 
     async def map_user_attributes(
         self, userinfo: UserInfo, token: Token, failures: int
@@ -71,7 +73,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             {},
         )
 
-        return UserAttributeDict(
+        return UserAttributeDict(  # type: ignore
             localpart=localpart,
             emails=[userinfo.email],
             confirm_localpart=False,
@@ -79,7 +81,8 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         )
     
     # Search user ID by its email, retrying with replacements if necessary.
-    async def search_user_id_by_threepid(self, email: str):
+    async def search_user_id_by_threepid(self, email: str
+    )-> str | None:
         # Try to find the user ID using the provided email
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
 
