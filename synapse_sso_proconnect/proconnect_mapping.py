@@ -2,7 +2,7 @@ import string
 
 import attr
 from authlib.oidc.core import UserInfo  # type: ignore
-from typing import Any, Dict, List
+from typing import Any, Dict, List, JsonDict
 
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
 from synapse.handlers.sso import MappingException
