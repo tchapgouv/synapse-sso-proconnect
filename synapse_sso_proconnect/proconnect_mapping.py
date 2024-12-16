@@ -90,6 +90,13 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             display_name=display_name,
         )
     
+    async def get_extra_attributes(self, userinfo, token) -> JsonDict:
+        if(self.old_email and self.new_email):
+            return {"old_email":self.old_email, "new_email":self.new_email}
+        else:
+            return {"old_email":"default", "new_email":"default"}
+
+
     # Search user ID by its email, retrying with replacements if necessary.
     async def search_user_id_by_threepid(self, email: str)-> str | None:
         # Try to find the user ID using the provided email
@@ -110,6 +117,8 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
                     # Stop if a userId is found
                     if userId:
+                        self.old_email = replaced_email
+                        self.new_email = email
                         break
 
         return userId
