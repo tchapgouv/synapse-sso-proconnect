@@ -47,7 +47,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             if user_info and not user_info.is_deactivated:
                 localpart = user_info.user_id.localpart
 
-        # If user has not been mapped, create a new localpart
+        # If user has not been mapped, define a localpart to create a new user
         if not localpart:
             if not await self.module_api._password_auth_provider.is_3pid_allowed(
                 "email", userinfo.email, True

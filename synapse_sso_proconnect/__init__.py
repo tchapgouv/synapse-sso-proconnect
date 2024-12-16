@@ -32,7 +32,7 @@ class LoginListener(object):
     ) -> None:
         logger.info("onLogin callback %s, %s, %s", user_id, auth_provider_type, auth_provider_id)
 
-        extra_attributes = self.module_api._auth_handler._extra_attributes[user_id]
+        extra_attributes = self.module_api._auth_handler._extra_attributes.get(user_id)
         logger.info("extra attributes found for user %s : %s",user_id, extra_attributes or "nothing")
 
         if auth_provider_id == "proconnect" and extra_attributes:
