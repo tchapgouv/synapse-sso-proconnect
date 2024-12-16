@@ -53,7 +53,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
                 "email", userinfo.email, True
             ):
                 raise MappingException(
-                    "Votre administration n'est pas encore présente sur Tchap, inscrivez-la sur https://tchap.beta.gouv.fr/"
+                    "Votre administration n'est pas encore présente sur Tchap, inscrivez-la sur https://tchap.numerique.gouv.fr/"
                 )
 
             # filter out invalid characters
