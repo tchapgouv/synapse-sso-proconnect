@@ -2,8 +2,9 @@ import string
 
 import attr
 from authlib.oidc.core import UserInfo  # type: ignore
-from typing import Any, Dict, List, JsonDict
+from typing import Any, Dict, List
 
+from synapse.types import JsonDict
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
 from synapse.handlers.sso import MappingException
 from synapse.module_api import ModuleApi
