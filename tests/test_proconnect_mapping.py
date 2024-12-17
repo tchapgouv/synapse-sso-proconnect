@@ -31,12 +31,13 @@ class ProConnectMappingTest(aiounittest.AsyncTestCase):
                 { "match":"new.fr","search":"beta.fr"}
             ]}) 
         # Call the tested function with an email that requires replacement
-        user_id = await self.module.search_user_id_by_threepid("test@new.fr")   
+        user_id, known_email = await self.module.search_user_id_by_threepid("test@new.fr")   
 
         # Assertions
         self.module.module_api._store.get_user_id_by_threepid.assert_any_call("email", "test@new.fr")
         self.module.module_api._store.get_user_id_by_threepid.assert_any_call("email", "test@beta.fr")    
-        self.assertEqual(user_id, "@test:beta")  # Should match the replaced email
+        self.assertEqual(user_id, "@test:beta") 
+        self.assertEqual(known_email, "test@beta.fr")
         
 
     async def test_search_user_id_replace_by_priority(self):        
@@ -46,18 +47,19 @@ class ProConnectMappingTest(aiounittest.AsyncTestCase):
             ]}) #replace by domain leads to a dead-end but it lower in the list
         
         # Call the tested function with an email that requires replacement
-        user_id = await self.module.search_user_id_by_threepid("test@new.fr")   
+        user_id, known_email = await self.module.search_user_id_by_threepid("test@new.fr")   
         # Assertions
         self.module.module_api._store.get_user_id_by_threepid.assert_any_call("email", "test@new.fr")
         self.module.module_api._store.get_user_id_by_threepid.assert_any_call("email", "test@old.fr")    
         self.assertEqual(user_id, "@test:old")  # Should match the replaced email
+        self.assertEqual(known_email, "test@old.fr")
 
     async def test_search_user_id_with_empty_map(self):
 
         self.module = create_module({"user_id_lookup_fallback_rules":[]})
 
-        # Call the tested function with an email that requires replacement
-        user_id = await self.module.search_user_id_by_threepid("test@numerique.fr")
+        user_id, known_email = await self.module.search_user_id_by_threepid("test@numerique.fr")
 
         # Assertions
         self.assertEqual(user_id, "@test:numerique")
+        self.assertEqual(known_email, "test@numerique.fr")

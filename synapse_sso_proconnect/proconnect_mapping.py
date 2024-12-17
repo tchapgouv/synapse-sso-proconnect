@@ -40,7 +40,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
         localpart = None
         # first, check if user exists in the homeserver, search by its email
-        mapped_user_id = await self.search_user_id_by_threepid(userinfo.email)
+        mapped_user_id, known_email = await self.search_user_id_by_threepid(userinfo.email)
 
         # If user has been found, try to map it to the proconnect identity
         if mapped_user_id:
@@ -92,24 +92,31 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
         )
     
     async def get_extra_attributes(self, userinfo, token) -> JsonDict:
-        if(self.old_email and self.new_email):
-            return {"old_email":self.old_email, "new_email":self.new_email}
-        else:
-            return {"old_email":"default", "new_email":"default"}
+        oidc_email = userinfo.email
+        mapped_user_id, known_email = await self.search_user_id_by_threepid(oidc_email)
+        return {"known_email":known_email, "oidc_email":oidc_email}
+        
 
 
-    # Search user ID by its email, retrying with replacements if necessary.
-    async def search_user_id_by_threepid(self, email: str)-> str | None:
+    async def search_user_id_by_threepid(self, email: str) -> tuple[str | None, str]:
+        """
+        Search for a user ID by its email, retrying with replacements if necessary.
+
+        Args:
+            email (str): The original email to search for.
+
+        Returns:
+            tuple[str | None, str]: A tuple containing the user ID (or None if not found)
+                                    and the email (replaced or original).
+        """
         # Try to find the user ID using the provided email
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
+        replaced_email = email  # Default to the original email
 
         # If userId is not found, attempt replacements
-        # Iterate through all fallback rules 
         if not userId:
             for rule in self._config.user_id_lookup_fallback_rules:
-                replaced_email = email
-
-                # If rule matches, retry the lookup with a modified_email 
+                # If rule matches, retry the lookup with a modified email
                 if "match" in rule and rule["match"] in email:
                     replaced_email = email.replace(rule["match"], rule["search"])
                     userId = await self.module_api._store.get_user_id_by_threepid(
@@ -118,8 +125,6 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
                     # Stop if a userId is found
                     if userId:
-                        self.old_email = replaced_email
-                        self.new_email = email
                         break
 
-        return userId
+        return userId, replaced_email

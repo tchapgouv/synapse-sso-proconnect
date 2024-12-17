@@ -38,8 +38,8 @@ class LoginListener(object):
         if auth_provider_id == "proconnect" and extra_attributes:
             #check if extra attributes were attached to user_id 
             extra_attributes = self.module_api._auth_handler._extra_attributes[user_id]
-            old_email = extra_attributes.get('old_email', None)
-            new_email = extra_attributes.get('new_email', None)
-            if(old_email and new_email):
+            oidc_email = extra_attributes.get('oidc_email', None)
+            known_email = extra_attributes.get('known_email', None)
+            if(known_email and oidc_email):
                 #make the remplacement
-                logger.info("User is connected via %s with a new email:%s, the old one:%s will be substituted", auth_provider_id, new_email,old_email)
+                logger.info("User is connected via %s with a new email:%s, the old one:%s will be substituted", auth_provider_id, oidc_email,known_email)
