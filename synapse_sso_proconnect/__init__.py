@@ -40,6 +40,16 @@ class LoginListener(object):
             extra_attributes = self.module_api._auth_handler._extra_attributes[user_id]
             oidc_email = extra_attributes.get('oidc_email', None)
             known_email = extra_attributes.get('known_email', None)
-            if(known_email and oidc_email):
+            if(known_email and oidc_email and known_email != oidc_email):
                 #make the remplacement
-                logger.info("User is connected via %s with a new email:%s, the old one:%s will be substituted", auth_provider_id, oidc_email,known_email)
+                self.substitute_known_email(user_id, known_email, oidc_email)
+
+    async def substitute_known_email(self,user_id, known_email, new_email) -> None:
+        logger.info("Substitute %s 3PID with a new email:%s, the old one:%s", user_id, new_email,known_email)
+        try:
+            await self.module_api._auth_handler.delete_local_threepid(user_id,'email', known_email)
+            await self.module_api._auth_handler.add_threepid(user_id, 'email', new_email)
+        except Exception as e:
+            # If there was an error when substituting the 3PID
+            logger.exception(
+                "Failed to substitute %s 3PID with a new email:%s, the old one:%s:%s", user_id, new_email,known_email,e)
