@@ -32,12 +32,12 @@ class LoginListener(object):
     ) -> None:
         logger.info("onLogin callback %s, %s, %s", user_id, auth_provider_type, auth_provider_id)
 
-        extra_attributes = self.module_api._auth_handler._extra_attributes.get(user_id)
+        sso_extra_attributes = self.module_api._auth_handler._extra_attributes.get(user_id, None)
         logger.info("extra attributes found for user %s : %s",user_id, extra_attributes or "nothing")
 
-        if auth_provider_id == "proconnect" and extra_attributes:
+        if auth_provider_id == "oidc-proconnect" and sso_extra_attributes:
             #check if extra attributes were attached to user_id 
-            extra_attributes = self.module_api._auth_handler._extra_attributes[user_id]
+            extra_attributes = sso_extra_attributes.extra_attributes
             oidc_email = extra_attributes.get('oidc_email', None)
             known_email = extra_attributes.get('known_email', None)
             if(known_email and oidc_email and known_email != oidc_email):
