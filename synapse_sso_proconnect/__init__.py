@@ -7,8 +7,9 @@ from synapse.module_api import ModuleApi
 
 logger = logging.getLogger(__name__)
 
-class LoginListener(object):
-    """Implementation of the 
+class LoginCallback(object):
+    """
+    Implementation of a Login Callback
     """
 
     def __init__(
@@ -32,6 +33,10 @@ class LoginListener(object):
     ) -> None:
         logger.info("onLogin callback %s, %s, %s", user_id, auth_provider_type, auth_provider_id)
 
+        # only process login from oidc-proconnect
+        if auth_provider_id != "oidc-proconnect":
+            return
+
         # Extra attributes are set by the mapper : ./proconnect_mapping.py
         # This mapper is only invoked when the oidc user is not mapped to a MxId
         # After the first login the oidc user unique field (sub) is mapped to a MxId
@@ -39,7 +44,7 @@ class LoginListener(object):
         sso_extra_attributes = self.module_api._auth_handler._extra_attributes.get(user_id, None)
         logger.info("extra attributes found for user %s : %s",user_id, sso_extra_attributes or "nothing")
 
-        if auth_provider_id == "oidc-proconnect" and sso_extra_attributes:
+        if sso_extra_attributes:
             #check if extra attributes were attached to user_id 
             extra_attributes = sso_extra_attributes.extra_attributes
             oidc_email = extra_attributes.get('oidc_email', None)
