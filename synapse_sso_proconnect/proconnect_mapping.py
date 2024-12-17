@@ -93,8 +93,8 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
     
     async def get_extra_attributes(self, userinfo, token) -> JsonDict:
         oidc_email = userinfo.email
-        mapped_user_id, known_email = await self.search_user_id_by_threepid(oidc_email)
-        return {"known_email":known_email, "oidc_email":oidc_email}
+        _, current_threepid_email = await self.search_user_id_by_threepid(oidc_email)
+        return {"current_threepid_email":current_threepid_email, "oidc_email":oidc_email}
         
 
 
@@ -107,24 +107,24 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
         Returns:
             tuple[str | None, str]: A tuple containing the user ID (or None if not found)
-                                    and the email (replaced or original).
+                                    and the user threepid_email.
         """
         # Try to find the user ID using the provided email
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
-        replaced_email = email  # Default to the original email
+        threepid_email = email  # Default to the original email
 
         # If userId is not found, attempt replacements
         if not userId:
             for rule in self._config.user_id_lookup_fallback_rules:
                 # If rule matches, retry the lookup with a modified email
                 if "match" in rule and rule["match"] in email:
-                    replaced_email = email.replace(rule["match"], rule["search"])
+                    threepid_email = email.replace(rule["match"], rule["search"])
                     userId = await self.module_api._store.get_user_id_by_threepid(
-                        "email", replaced_email
+                        "email", threepid_email
                     )
 
                     # Stop if a userId is found
                     if userId:
                         break
 
-        return userId, replaced_email
+        return userId, threepid_email

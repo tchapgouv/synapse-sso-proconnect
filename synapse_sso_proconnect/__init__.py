@@ -32,24 +32,32 @@ class LoginListener(object):
     ) -> None:
         logger.info("onLogin callback %s, %s, %s", user_id, auth_provider_type, auth_provider_id)
 
+        # Extra attributes are set by the mapper : ./proconnect_mapping.py
+        # This mapper is only invoked when the oidc user is not mapped to a MxId
+        # After the first login the oidc user unique field (sub) is mapped to a MxId
+        # Thus the 3PID substitution happens only at the first login of the oidc user
         sso_extra_attributes = self.module_api._auth_handler._extra_attributes.get(user_id, None)
-        logger.info("extra attributes found for user %s : %s",user_id, extra_attributes or "nothing")
+        logger.info("extra attributes found for user %s : %s",user_id, sso_extra_attributes or "nothing")
 
         if auth_provider_id == "oidc-proconnect" and sso_extra_attributes:
             #check if extra attributes were attached to user_id 
             extra_attributes = sso_extra_attributes.extra_attributes
             oidc_email = extra_attributes.get('oidc_email', None)
-            known_email = extra_attributes.get('known_email', None)
-            if(known_email and oidc_email and known_email != oidc_email):
-                #make the remplacement
-                self.substitute_known_email(user_id, known_email, oidc_email)
+            current_threepid_email = extra_attributes.get('current_threepid_email', None)
+            if(current_threepid_email and oidc_email and current_threepid_email != oidc_email):
+                # make the substitution
+                await self.substitute_threepid(user_id, current_threepid_email, oidc_email)
 
-    async def substitute_known_email(self,user_id, known_email, new_email) -> None:
-        logger.info("Substitute %s 3PID with a new email:%s, the old one:%s", user_id, new_email,known_email)
+    async def substitute_threepid(self,user_id, current_threepid_email, new_threepid_email) -> None:
+        """
+            Delete current threepid email and add a new threepid in synapse and sydent
+        """
+        logger.info("Substitute %s 3PID with a new email:%s, the old one:%s", user_id, new_threepid_email,current_threepid_email)
         try:
-            await self.module_api._auth_handler.delete_local_threepid(user_id,'email', known_email)
-            await self.module_api._auth_handler.add_threepid(user_id, 'email', new_email)
+            await self.module_api._auth_handler.delete_local_threepid(user_id,'email', current_threepid_email)
+            current_time = self.module_api._clock.time_msec()
+            await self.module_api._auth_handler.add_threepid(user_id, 'email', new_threepid_email, current_time)
         except Exception as e:
             # If there was an error when substituting the 3PID
             logger.exception(
-                "Failed to substitute %s 3PID with a new email:%s, the old one:%s:%s", user_id, new_email,known_email,e)
+                "Failed to substitute %s 3PID with a new email:%s, the old one:%s:%s", user_id, new_threepid_email, current_threepid_email, e)
