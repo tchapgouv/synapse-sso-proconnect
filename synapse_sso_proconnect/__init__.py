@@ -28,8 +28,8 @@ class LoginCallback(object):
     async def on_user_login(
             self, 
             user_id: str, 
-            auth_provider_type: str, 
-            auth_provider_id: str
+            auth_provider_type:  str | None, 
+            auth_provider_id:  str | None
     ) -> None:
         logger.info("onLogin callback %s, %s, %s", user_id, auth_provider_type, auth_provider_id)
 
@@ -56,7 +56,11 @@ class LoginCallback(object):
             # make the substitution
             await self.substitute_threepid(user_id, current_threepid_email, oidc_email)
 
-    async def substitute_threepid(self,user_id, current_threepid_email, new_threepid_email) -> None:
+    async def substitute_threepid(
+            self, 
+            user_id:str, 
+            current_threepid_email:str, 
+            new_threepid_email:str) -> None:
         """
             Delete current threepid email and add a new threepid in synapse and sydent
         """

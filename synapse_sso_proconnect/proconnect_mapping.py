@@ -91,7 +91,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             display_name=display_name,
         )
     
-    async def get_extra_attributes(self, userinfo, token) -> JsonDict:
+    async def get_extra_attributes(self, userinfo: UserInfo, token: Token) -> JsonDict:
         oidc_email = userinfo.email
         _, current_threepid_email = await self.search_user_id_by_threepid(oidc_email)
         return {"current_threepid_email":current_threepid_email, "oidc_email":oidc_email}
