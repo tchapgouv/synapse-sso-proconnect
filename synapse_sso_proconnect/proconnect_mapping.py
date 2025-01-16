@@ -4,6 +4,7 @@ import attr
 from authlib.oidc.core import UserInfo  # type: ignore
 from typing import Any, Dict, List
 
+from synapse.types import JsonDict
 from synapse.handlers.oidc import OidcMappingProvider, Token, UserAttributeDict
 from synapse.handlers.sso import MappingException
 from synapse.module_api import ModuleApi
@@ -39,7 +40,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
 
         localpart = None
         # first, check if user exists in the homeserver, search by its email
-        mapped_user_id = await self.search_user_id_by_threepid(userinfo.email)
+        mapped_user_id, known_email = await self.search_user_id_by_threepid(userinfo.email)
 
         # If user has been found, try to map it to the proconnect identity
         if mapped_user_id:
@@ -47,7 +48,7 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             if user_info and not user_info.is_deactivated:
                 localpart = user_info.user_id.localpart
 
-        # If user has not been mapped, create a new localpart
+        # If user has not been mapped, define a localpart to create a new user
         if not localpart:
             if not await self.module_api._password_auth_provider.is_3pid_allowed(
                 "email", userinfo.email, True
@@ -90,26 +91,40 @@ class ProConnectMappingProvider(OidcMappingProvider[ProConnectMappingConfig]):
             display_name=display_name,
         )
     
-    # Search user ID by its email, retrying with replacements if necessary.
-    async def search_user_id_by_threepid(self, email: str)-> str | None:
+    async def get_extra_attributes(self, userinfo: UserInfo, token: Token) -> JsonDict:
+        oidc_email = userinfo.email
+        _, current_threepid_email = await self.search_user_id_by_threepid(oidc_email)
+        return {"current_threepid_email":current_threepid_email, "oidc_email":oidc_email}
+        
+
+
+    async def search_user_id_by_threepid(self, email: str) -> tuple[str | None, str]:
+        """
+        Search for a user ID by its email, retrying with replacements if necessary.
+
+        Args:
+            email (str): The original email to search for.
+
+        Returns:
+            tuple[str | None, str]: A tuple containing the user ID (or None if not found)
+                                    and the user threepid_email.
+        """
         # Try to find the user ID using the provided email
         userId = await self.module_api._store.get_user_id_by_threepid("email", email)
+        threepid_email = email  # Default to the original email
 
         # If userId is not found, attempt replacements
-        # Iterate through all fallback rules 
         if not userId:
             for rule in self._config.user_id_lookup_fallback_rules:
-                replaced_email = email
-
-                # If rule matches, retry the lookup with a modified_email 
+                # If rule matches, retry the lookup with a modified email
                 if "match" in rule and rule["match"] in email:
-                    replaced_email = email.replace(rule["match"], rule["search"])
+                    threepid_email = email.replace(rule["match"], rule["search"])
                     userId = await self.module_api._store.get_user_id_by_threepid(
-                        "email", replaced_email
+                        "email", threepid_email
                     )
 
                     # Stop if a userId is found
                     if userId:
                         break
 
-        return userId
+        return userId, threepid_email
