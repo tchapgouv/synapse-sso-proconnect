@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-pip install synapse-sso-proconnect
+pip install git+https://github.com/tchapgouv/synapse-sso-proconnect.git
 ```
 
 ## Config
